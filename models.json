@@ -1,0 +1,9 @@
+{
+  "models": [
+    {
+      "label": "smart",
+      "value": "smart"
+    }
+  ],
+  "default": "smart"
+}

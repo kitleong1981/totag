@@ -1,0 +1,15 @@
+[
+  {
+    "group": "Examples",
+    "entries": [
+      {
+        "label": "New York",
+        "value": "New York, United States"
+      },
+      {
+        "label": "Tokyo",
+        "value": "Tokyo, Japan"
+      }
+    ]
+  }
+]

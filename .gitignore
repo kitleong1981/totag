@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+*.egg-info/
+
+# Database (including SQLite's WAL-mode sidecar files)
+*.db
+*.db-shm
+*.db-wal
+
+# Thumbnails cache
+thumbs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Runtime app state — set via in-app settings, personal, never commit
+folders.json
+
+# Secrets — never commit real credentials
+.env
+microstock_config.json
+llm_config.json
+.google_maps_api_key

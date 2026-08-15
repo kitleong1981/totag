@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToTag - Metadata Manager</title>
+    <link rel="icon" type="image/x-icon" href="/static/images/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/images/icon_32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/images/icon_16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/icon_256.png">
+    <link rel="stylesheet" href="/static/css/style.css?v=20260815001">
+</head>
+<body>
+    <!-- Top Header Bar -->
+    <header class="top-header">
+        <div class="app-name">
+            <img src="/static/images/icon_32.png" alt="" style="width:24px;height:24px;border-radius:6px;flex-shrink:0;">
+            <span class="app-title">Metadata Manager</span>
+            <span class="app-version">v3.3.3</span>
+        </div>
+        <div class="header-tabs">
+            <button class="tab-btn active" data-tab="metadata" title="Metadata">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            </button>
+            <button class="tab-btn" data-tab="export" title="Export / Upload">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </button>
+        </div>
+        <div class="header-controls">
+            <div class="header-control-group">
+                <label class="control-label" title="Location"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></label>
+                <select id="location-override" class="header-select">
+                    <option value="">Auto</option>
+                </select>
+                <button class="loc-settings-btn" onclick="openLocationsModal()" title="Edit location list">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                </button>
+                <div id="recent-locations" class="recent-locs"></div>
+            </div>
+            <div class="header-control-group">
+                <label class="control-label" title="Model"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg></label>
+                <select id="model-selector" class="header-select"></select>
+                <button class="loc-settings-btn" onclick="openModelsModal()" title="Edit model list">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Export / Upload Panel -->
+    <div id="export-panel" class="export-panel" style="display:none;">
+        <div class="export-toolbar">
+            <button id="export-mount-btn" class="btn-secondary" style="display:none;">⏏ Mount Drives</button>
+            <button id="export-scan-btn" class="btn-secondary">↺ Refresh Folders</button>
+            <button id="export-credentials-btn" class="btn-secondary" onclick="openCredentialsModal()" title="Set FTP/SFTP credentials per stock site">🔑 Site Credentials</button>
+            <span class="export-legend">
+                <span class="legend-dot" style="background:#22c55e"></span> CSV ready &nbsp;
+                <span class="legend-dot" style="background:#4f6ef7"></span> No CSV yet
+                <button type="button" class="export-quick-link" data-export-target="export-images-panel" onclick="scrollExportPanelTo('export-images-panel')">Images</button>
+                <button type="button" class="export-quick-link" data-export-target="export-clips-panel" onclick="scrollExportPanelTo('export-clips-panel')">Clips</button>
+            </span>
+        </div>
+        <div id="export-no-credentials-banner" class="export-no-credentials-banner" style="display:none;">
+            No FTP/SFTP credentials configured yet — uploads are disabled. Click 🔑 Site Credentials above to set them up.
+        </div>
+        <div id="export-table-wrap" class="export-table-wrap">
+            <section class="export-subpanel" id="export-images-panel">
+                <h3 class="export-subpanel-title">Images</h3>
+                <table class="export-table">
+                    <thead>
+                        <tr>
+                            <th>Folder</th>
+                            <th>Metadata</th>
+                            <th>Category</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="export-folder-list-image">
+                        <tr><td colspan="4" style="text-align:center;color:#64748b;padding:24px;">Click "Refresh Folders" to load</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="export-subpanel" id="export-clips-panel">
+                <h3 class="export-subpanel-title">Clips</h3>
+                <table class="export-table">
+                    <thead>
+                        <tr>
+                            <th>Folder</th>
+                            <th>Metadata</th>
+                            <th>Category</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="export-folder-list-clip">
+                        <tr><td colspan="4" style="text-align:center;color:#64748b;padding:24px;">Click "Refresh Folders" to load</td></tr>
+                    </tbody>
+                </table>
+            </section>
+        </div>
+        <!-- SSE progress log -->
+        <div id="export-log" class="export-log" style="display:none;">
+            <div class="export-log-header">
+                <span id="export-log-title">Progress</span>
+                <button id="export-log-close" class="btn-ghost">✕</button>
+            </div>
+            <div id="export-log-body" class="export-log-body"></div>
+        </div>
+    </div>
+
+    <div id="metadata-panel" class="container">
+        <!-- Left: Folder Tree -->
+        <aside class="sidebar folder-tree" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Folders</h2>
+                <button id="load-meta-btn" class="btn-icon" title="Load metadata for all folders" onclick="triggerBulkMetadataLoad()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L12 22M2 12l10-10 10 10"/>
+                    </svg>
+                </button>
+                <button id="refresh-btn" class="btn-icon" title="Refresh folders">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 4v6h-6M1 20v-6h6"/>
+                        <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+                    </svg>
+                </button>
+                <button id="folder-roots-btn" class="btn-icon" title="Add or remove watched folders" onclick="openFolderRootsModal()">⚙</button>
+            </div>
+            <div id="pending-sync-tab" class="pending-sync-tab" onclick="selectPendingSync()">
+                <span class="pending-sync-label">Pending Sync</span>
+                <span id="pending-sync-count" class="folder-count">0</span>
+            </div>
+            <div class="sidebar-divider"></div>
+            <div class="sidebar-search-wrap">
+                <input type="text" id="filter-input" class="sidebar-search-input" placeholder="Search title / keywords…" oninput="setFilter(this.value)">
+                <button id="filter-clear-btn" class="filter-clear-btn" onclick="clearSearch()" style="display:none;" title="Clear search">×</button>
+            </div>
+            <div id="quick-search-wrap">
+                <div class="quick-search-chips" id="quick-search-chips"></div>
+                <button class="quick-search-edit-btn" onclick="openQuickSearchModal()" title="Edit quick search terms">⚙</button>
+            </div>
+            <div id="folder-list" class="folder-list">
+                <!-- Folder tree will be rendered here -->
+            </div>
+        </aside>
+
+        <!-- Middle: Thumbnail Grid -->
+        <section class="thumbnail-section">
+            <div class="thumbnail-header">
+                <button id="sidebar-toggle-btn" class="btn-icon" title="Toggle folder panel" onclick="toggleSidebar()" style="margin-right:4px;">&#9776;</button>
+                <h2 id="current-folder">Select a folder</h2>
+                <span id="file-count" class="file-count"></span>
+                <button id="multi-select-btn" class="btn-icon" style="display:none;" title="Toggle multi-select mode" onclick="toggleMultiSelectMode()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                </button>
+                <button id="select-all-btn" class="btn-icon" style="display:none;" title="Select all" onclick="selectAll()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                </button>
+                <button id="deselect-all-btn" class="btn-icon" style="display:none;" title="Deselect all" onclick="deselectAll()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+                </button>
+            </div>
+            <div id="sort-bar" class="sort-bar" style="display:none;">
+                <span class="sort-label">Sort:</span>
+                <button class="sort-btn" data-sort="capture" onclick="setSort('capture')">Capture Time</button>
+                <button class="sort-btn" data-sort="filename" onclick="setSort('filename')">Filename</button>
+                <button class="sort-btn" data-sort="missing" onclick="setSort('missing')">Empty Metadata</button>
+                <button id="select-empty-btn" class="sort-btn sort-action-btn" onclick="selectEmptyMetadata()" title="Select all files with empty title, description, or keywords">Select Empty</button>
+            </div>
+            <div id="thumbnail-grid" class="thumbnail-grid">
+                <!-- Thumbnails will be rendered here -->
+            </div>
+        </section>
+
+        <!-- Right: Metadata Panel -->
+        <aside class="metadata-panel">
+            <div class="metadata-header">
+                <h2 id="meta-panel-title">Metadata</h2>
+                <div class="header-actions">
+                    <button id="read-meta-btn" class="btn-icon" title="Read Metadata from disk">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+                    </button>
+                    <button id="gen-meta-btn" class="btn-icon" title="Generate stock metadata with AI" style="display:none;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    </button>
+                    <button id="sync-btn" class="btn-icon sync-all-btn" title="Sync All Changes to disk">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                        <span id="sync-dirty-count" class="sync-dirty-count" style="display:none;">0</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="metadata-content" class="metadata-content">
+                <div class="no-selection">
+                    <p>Select files to view and edit metadata</p>
+                </div>
+            </div>
+
+            <div id="metadata-form" class="metadata-form" style="display: none;">
+                <div class="file-info">
+                    <span id="selected-count"></span>
+                    <span id="capture-date" class="modified-date" title="Image capture date"></span>
+                    <span id="modified-date" class="modified-date" title="File modified date"></span>
+                    <a id="gps-badge" class="gps-badge" href="#" target="_blank" rel="noopener" style="display: none;" title="Open embedded GPS location in Google Maps">GPS</a>
+                    <span id="dirty-indicator" class="dirty-indicator" style="display: none;" title="File has unsaved changes">●</span>
+                </div>
+
+                <div id="gen-status-banner" class="gen-status-banner" style="display:none;">
+                    <span class="gen-status-spinner"></span>
+                    <span id="gen-status-text">Generating metadata with AI…</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="context-hint-input">Context Hint (optional)</label>
+                    <textarea id="context-hint-input" class="context-hint-input" rows="2" spellcheck="false" placeholder="Optional extra context for AI generation, e.g. event name, occasion, subject"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="meta-title">Title</label>
+                    <input type="text" id="meta-title" placeholder="Mixed values" class="mixed-indicator">
+                </div>
+
+                <div class="form-group">
+                    <label for="meta-description">Description</label>
+                    <textarea id="meta-description" rows="3" placeholder="Mixed values" class="mixed-indicator"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="meta-keywords">Keywords</label>
+                    <textarea id="meta-keywords" rows="3" placeholder="Mixed values" class="mixed-indicator" style="resize: none;"></textarea>
+                    <small class="help-text">Separate keywords with commas</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Keyword Append Mode</label>
+                    <div id="tag-input-container" class="tag-input-container" onclick="document.getElementById('keyword-append').focus()">
+                        <div id="tag-chips"></div>
+                        <input type="text" id="keyword-append" placeholder="Type keyword, comma to add…" autocomplete="off">
+                    </div>
+                    <div class="append-actions">
+                        <button id="keyword-append-btn" class="btn-secondary">Add to selection</button>
+                        <button id="guess-location-btn" class="btn-secondary" title="Guess landmarks from image using AI">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:3px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Guess Location
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button id="apply-btn" class="btn-primary" title="Apply changes to selected files">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+                            <polyline points="17 21 17 13 7 13 7 21"/>
+                            <polyline points="7 3 7 8 15 8"/>
+                        </svg>
+                        Apply
+                    </button>
+                    <button id="undo-btn" class="btn-secondary" title="Re-read metadata from disk for selected files" disabled>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M23 4v6h-6M1 20v-6h6"/>
+                            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+                        </svg>
+                        Undo
+                    </button>
+                    <button id="open-finder-btn" class="btn-secondary" title="Show file in Finder">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                            <polyline points="15 3 21 3 21 9"/>
+                            <line x1="10" y1="14" x2="21" y2="3"/>
+                        </svg>
+                        Show
+                    </button>
+                </div>
+
+                <div id="single-preview-wrap" style="display:none; padding:0.5rem 0 0;">
+                    <img id="single-preview-img" src="" alt="" style="width:100%; height:auto; display:block; border-radius:4px;">
+                </div>
+            </div>
+
+        </aside>
+    </div>
+    </div><!-- end #metadata-panel -->
+
+    <!-- Status Bar -->
+    <div id="status-bar" class="status-bar">
+        <div class="status-section">
+            <span id="status-text">Ready</span>
+            <div id="status-progress" class="status-progress" style="display: none;">
+                <div class="progress-bar"></div>
+            </div>
+        </div>
+        <div class="status-section status-divider">
+            <span id="status-bg-text">Background: Idle</span>
+            <div id="status-bg-progress" class="status-progress" style="display: none;">
+                <div class="progress-bar"></div>
+            </div>
+        </div>
+        <div class="status-section status-divider status-jobs-section">
+            <span id="status-jobs-text">Jobs: Idle</span>
+            <div id="status-jobs-progress" class="status-progress" style="display: none;">
+                <div class="progress-bar"></div>
+            </div>
+        </div>
+        <button id="cancel-batch-btn" class="cancel-batch-btn" style="display:none;" title="Cancel batch generation">✕ Cancel</button>
+    </div>
+
+    <!-- Folder Roots Settings Modal -->
+    <div id="folder-roots-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
+        <div class="loc-modal">
+            <div class="loc-modal-header">
+                <span>Watched Folders</span>
+                <button class="loc-close-btn" onclick="closeFolderRootsModal()" title="Close">✕</button>
+            </div>
+            <p style="margin:0 0.5rem 0.75rem;font-size:0.78rem;color:var(--text-secondary);line-height:1.4;">
+                Click Browse to pick a folder on this machine, or paste a full path (e.g. <code>/Users/you/Pictures/Stock</code>). A newly added folder is scanned right away.
+            </p>
+            <div id="folder-roots-modal-body" class="loc-modal-body"></div>
+            <div class="loc-modal-footer" style="flex-wrap:wrap;">
+                <button id="folder-roots-browse-btn" class="loc-add-group-btn" onclick="browseForFolder()" title="Open the native folder picker (macOS only)">📁 Browse…</button>
+                <input type="text" id="folder-roots-new-path" placeholder="or paste /path/to/your/photos" onkeydown="if(event.key==='Enter'){event.preventDefault();addFolderRootEntry();}" style="flex:1;min-width:160px;padding:5px 8px;font-size:0.8rem;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:4px;color:var(--text-primary);">
+                <button class="loc-add-group-btn" onclick="addFolderRootEntry()">+ Add</button>
+                <div style="flex-basis:100%;height:0;"></div>
+                <div style="flex:1"></div>
+                <button class="btn-secondary" onclick="closeFolderRootsModal()" style="padding:6px 16px;font-size:0.8rem;">Cancel</button>
+                <button id="folder-roots-save-btn" class="btn-primary" onclick="saveFolderRoots()" style="padding:6px 16px;font-size:0.8rem;">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Site Credentials Modal -->
+    <div id="credentials-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
+        <div class="loc-modal" style="max-width:640px;">
+            <div class="loc-modal-header">
+                <span>Site Credentials</span>
+                <button class="loc-close-btn" onclick="closeCredentialsModal()" title="Close">✕</button>
+            </div>
+            <p style="margin:0 0.5rem 0.75rem;font-size:0.78rem;color:var(--text-secondary);line-height:1.4;">
+                FTP/SFTP login for each stock site. Leave a site's fields blank to skip it — uploads and CSV generation silently skip any site without credentials. Passwords are never sent back to the browser; leave the password field blank on an already-configured site to keep it unchanged.
+            </p>
+            <div id="credentials-modal-body" class="loc-modal-body"></div>
+            <div class="loc-modal-footer">
+                <div style="flex:1"></div>
+                <button class="btn-secondary" onclick="closeCredentialsModal()" style="padding:6px 16px;font-size:0.8rem;">Cancel</button>
+                <button id="credentials-save-btn" class="btn-primary" onclick="saveCredentials()" style="padding:6px 16px;font-size:0.8rem;">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Model Settings Modal -->
+    <div id="models-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
+        <div class="loc-modal">
+            <div class="loc-modal-header">
+                <span>Edit Model List</span>
+                <button class="loc-close-btn" onclick="closeModelsModal()" title="Close">✕</button>
+            </div>
+            <div style="padding:10px 16px 0;">
+                <div style="padding:10px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-tertiary);">
+                    <div style="font-size:0.7rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">AI Endpoint (required to use AI generation)</div>
+                    <p style="margin:0 0 8px;font-size:0.74rem;color:var(--text-secondary);line-height:1.4;">
+                        Any OpenAI-compatible vision endpoint — OpenAI itself, or a self-hosted/compatible server. The key is never sent back to the browser; leave it blank to keep the one already saved.
+                    </p>
+                    <div class="loc-entry-row">
+                        <input id="llm-base-url-input" class="loc-label" placeholder="https://api.openai.com" style="flex:1.4;">
+                        <input id="llm-api-key-input" type="password" class="loc-value" placeholder="API key" style="flex:1;">
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+                        <span id="llm-endpoint-status" style="font-size:0.7rem;color:var(--text-secondary);flex:1;"></span>
+                        <button id="llm-endpoint-save-btn" class="btn-secondary" onclick="saveLlmEndpoint()" style="font-size:0.75rem;padding:3px 10px;">Save Endpoint</button>
+                    </div>
+                </div>
+            </div>
+            <p style="margin:8px 16px 0;font-size:0.72rem;color:var(--text-secondary);line-height:1.4;">
+                The model selected in the header dropdown (top toolbar) is used everywhere AI runs — metadata
+                generation <em>and</em> the Export tab's "AI Auto" CSV category classification. There's no
+                separate model for CSV generation; switching the dropdown changes both.
+            </p>
+            <div id="models-modal-body" class="loc-modal-body"></div>
+            <div class="loc-modal-footer">
+                <button class="loc-add-group-btn" onclick="addModelEntry()">+ Add Model</button>
+                <div style="flex:1"></div>
+                <button class="btn-secondary" onclick="closeModelsModal()" style="padding:6px 16px;font-size:0.8rem;">Cancel</button>
+                <button id="models-save-btn" class="btn-primary" onclick="saveModels()" style="padding:6px 16px;font-size:0.8rem;">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Location Settings Modal -->
+    <div id="locations-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
+        <div class="loc-modal">
+            <div class="loc-modal-header">
+                <span>Edit Location List</span>
+                <button class="loc-close-btn" onclick="closeLocationsModal()" title="Close">✕</button>
+            </div>
+            <div id="locations-modal-body" class="loc-modal-body"></div>
+            <div class="loc-modal-footer">
+                <button class="loc-add-group-btn" onclick="addLocationsGroup()">+ New Group</button>
+                <div style="flex:1"></div>
+                <button class="btn-secondary" onclick="closeLocationsModal()" style="padding:6px 16px;font-size:0.8rem;">Cancel</button>
+                <button id="locations-save-btn" class="btn-primary" onclick="saveLocations()" style="padding:6px 16px;font-size:0.8rem;">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Dialog -->
+    <div id="confirm-dialog-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
+        <div style="background:#1e2130;border:1px solid #374151;border-radius:10px;padding:28px 32px;max-width:400px;width:90%;box-shadow:0 16px 48px rgba(0,0,0,0.6);">
+            <h3 id="confirm-dialog-title" style="color:#e2e8f0;margin-bottom:12px;font-size:1rem;"></h3>
+            <p id="confirm-dialog-message" style="color:#94a3b8;font-size:0.85rem;white-space:pre-line;margin-bottom:24px;line-height:1.5;"></p>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button id="confirm-dialog-no" onclick="hideConfirmDialog()" class="btn-secondary" style="padding:7px 20px;">Cancel</button>
+                <button id="confirm-dialog-yes" class="btn-primary" style="padding:7px 20px;background:#6d28d9;border-color:#7c3aed;">Yes, Move</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Search Edit Modal -->
+    <div id="quick-search-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
+        <div class="loc-modal">
+            <div class="loc-modal-header">
+                <span>Edit Quick Search Terms</span>
+                <button class="loc-close-btn" onclick="closeQuickSearchModal()" title="Close">✕</button>
+            </div>
+            <div id="quick-search-modal-body" class="loc-modal-body"></div>
+            <div class="loc-modal-footer">
+                <button class="loc-add-group-btn" onclick="addQuickSearchEntry()">+ Add</button>
+                <div style="flex:1"></div>
+                <button class="btn-secondary" onclick="closeQuickSearchModal()" style="padding:6px 16px;font-size:0.8rem;">Cancel</button>
+                <button class="btn-primary" onclick="saveQuickSearches()" style="padding:6px 16px;font-size:0.8rem;">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js?v=20260815001"></script>
+</body>
+</html>
