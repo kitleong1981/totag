@@ -159,6 +159,29 @@ def _load_secret_from_file(path: str) -> str:
 if not GOOGLE_MAPS_API_KEY:
     GOOGLE_MAPS_API_KEY = _load_secret_from_file("~/.google_maps_api_key")
 
+GOOGLE_MAPS_KEY_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "google_maps_key.json")
+
+
+def _load_google_maps_key_file() -> str:
+    try:
+        with open(GOOGLE_MAPS_KEY_FILE, encoding="utf-8") as f:
+            return json.load(f).get("api_key") or ""
+    except Exception:
+        return ""
+
+
+def _save_google_maps_key_file(api_key: str):
+    with open(GOOGLE_MAPS_KEY_FILE, "w", encoding="utf-8") as f:
+        json.dump({"api_key": api_key}, f, indent=2)
+
+
+# A previously saved key (from the Model Settings modal) takes over from the
+# GOOGLE_MAPS_API_KEY/~/.google_maps_api_key env-var seed above, same
+# override pattern as folders.json/llm_config.json elsewhere in this file.
+_saved_google_maps_key = _load_google_maps_key_file()
+if _saved_google_maps_key:
+    GOOGLE_MAPS_API_KEY = _saved_google_maps_key
+
 # Track pending metadata loads to avoid redundant work
 # Key: folder_path, Value: future
 pending_metadata_loads = {}
@@ -729,6 +752,39 @@ def api_llm_config_post():
         "base_url": llm_config.get_base_url(),
         "has_api_key": bool(llm_config.get_api_key()),
     })
+
+
+@app.route("/api/google-maps-key", methods=["GET"])
+def api_google_maps_key_get():
+    """Return whether a Google Maps API key is configured — never the key
+    itself, same write-only pattern as /api/llm-config."""
+    return jsonify({"has_api_key": bool(GOOGLE_MAPS_API_KEY)})
+
+
+@app.route("/api/google-maps-key", methods=["POST"])
+def api_google_maps_key_post():
+    """Save (or clear) the Google Maps API key used for GPS reverse-geocoding
+    and Places nearby-search. Applies immediately, no restart needed.
+
+    A blank api_key with clear=false means "keep the existing key" (same
+    write-only pattern as the other credential endpoints — it's never sent
+    back to the browser, so there's nothing to compare a blank field
+    against). Pass clear=true to actually remove a previously saved key —
+    OSM-based location keywords (no key required) keep working either way.
+    """
+    global GOOGLE_MAPS_API_KEY
+    data = request.get_json() or {}
+    api_key = str(data.get("api_key") or "").strip()
+    clear = bool(data.get("clear"))
+
+    if clear:
+        GOOGLE_MAPS_API_KEY = ""
+        _save_google_maps_key_file("")
+    elif api_key:
+        GOOGLE_MAPS_API_KEY = api_key
+        _save_google_maps_key_file(api_key)
+
+    return jsonify({"success": True, "has_api_key": bool(GOOGLE_MAPS_API_KEY)})
 
 
 @app.route("/api/models", methods=["GET"])

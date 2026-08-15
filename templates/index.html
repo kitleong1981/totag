@@ -367,6 +367,23 @@
                         <button id="llm-endpoint-save-btn" class="btn-secondary" onclick="saveLlmEndpoint()" style="font-size:0.75rem;padding:3px 10px;">Save Endpoint</button>
                     </div>
                 </div>
+                <div style="padding:10px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-tertiary);margin-top:10px;">
+                    <div style="font-size:0.7rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Google Maps API Key (optional — GPS location keywords)</div>
+                    <p style="margin:0 0 8px;font-size:0.74rem;color:var(--text-secondary);line-height:1.4;">
+                        Used for reverse-geocoding and nearby-landmark keywords. Leave unset and
+                        park/landmark containment keywords (OSM Overpass) still work with no key
+                        at all. The key is never sent back to the browser; leave blank to keep the
+                        one already saved.
+                    </p>
+                    <div class="loc-entry-row">
+                        <input id="google-maps-key-input" type="password" class="loc-value" placeholder="API key" style="flex:1;">
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+                        <span id="google-maps-key-status" style="font-size:0.7rem;color:var(--text-secondary);flex:1;"></span>
+                        <button id="google-maps-key-clear-btn" class="btn-secondary" onclick="clearGoogleMapsKey()" style="font-size:0.75rem;padding:3px 10px;">Clear</button>
+                        <button id="google-maps-key-save-btn" class="btn-secondary" onclick="saveGoogleMapsKey()" style="font-size:0.75rem;padding:3px 10px;">Save Key</button>
+                    </div>
+                </div>
             </div>
             <p style="margin:8px 16px 0;font-size:0.72rem;color:var(--text-secondary);line-height:1.4;">
                 The model selected in the header dropdown (top toolbar) is used everywhere AI runs — metadata

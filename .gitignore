@@ -37,3 +37,4 @@ folders.json
 microstock_config.json
 llm_config.json
 .google_maps_api_key
+google_maps_key.json

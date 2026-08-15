@@ -151,7 +151,10 @@ at volume.
   self-hosted server).
 - GPS-aware keyword enrichment — reverse geocoding plus OSM containment
   lookups so a photo shot inside a national park or city park gets that
-  park's name as a keyword, even if the GPS fix is a little off.
+  park's name as a keyword, even if the GPS fix is a little off. The OSM
+  half needs no API key at all; Google reverse-geocoding/nearby-landmarks
+  is optional on top, with its key set from the same model-settings modal
+  as the AI endpoint (or `.env`, `GOOGLE_MAPS_API_KEY`).
 - CSV export + FTP/SFTP upload for stock sites (Shutterstock, Adobe Stock,
   Dreamstime, Alamy, Pond5), with per-file progress and resume. Sites
   without configured credentials are skipped automatically, not treated

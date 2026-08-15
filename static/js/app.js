@@ -3823,6 +3823,7 @@ function openModelsModal() {
     modelsEditData = JSON.parse(JSON.stringify(modelsData));
     renderModelsModalBody();
     loadLlmEndpoint();
+    loadGoogleMapsKey();
     document.getElementById('models-modal-overlay').style.display = 'flex';
 }
 
@@ -3864,6 +3865,69 @@ async function saveLlmEndpoint() {
     } finally {
         btn.disabled = false;
         btn.textContent = 'Save Endpoint';
+    }
+}
+
+async function loadGoogleMapsKey() {
+    const status = document.getElementById('google-maps-key-status');
+    const input = document.getElementById('google-maps-key-input');
+    try {
+        const res = await fetch('/api/google-maps-key');
+        const data = await res.json();
+        input.value = '';
+        input.placeholder = data.has_api_key ? 'Key saved — leave blank to keep it' : 'API key';
+        if (status) status.textContent = data.has_api_key ? '🔑 Key configured' : 'Not set — OSM-based location keywords still work';
+    } catch (e) {
+        if (status) status.textContent = `Error loading key: ${e.message}`;
+    }
+}
+
+async function saveGoogleMapsKey() {
+    const btn = document.getElementById('google-maps-key-save-btn');
+    const status = document.getElementById('google-maps-key-status');
+    const input = document.getElementById('google-maps-key-input');
+    const apiKey = input.value.trim();
+    if (!apiKey) {
+        if (status) status.textContent = 'Nothing to save — field is blank';
+        return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+        const res = await fetch('/api/google-maps-key', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ api_key: apiKey }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || `Save failed (${res.status})`);
+        input.value = '';
+        input.placeholder = data.has_api_key ? 'Key saved — leave blank to keep it' : 'API key';
+        if (status) status.textContent = data.has_api_key ? '✔ Saved — 🔑 Key configured' : '✔ Saved';
+    } catch (e) {
+        if (status) status.textContent = `Error: ${e.message}`;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save Key';
+    }
+}
+
+async function clearGoogleMapsKey() {
+    const status = document.getElementById('google-maps-key-status');
+    const input = document.getElementById('google-maps-key-input');
+    try {
+        const res = await fetch('/api/google-maps-key', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ clear: true }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || `Clear failed (${res.status})`);
+        input.value = '';
+        input.placeholder = 'API key';
+        if (status) status.textContent = 'Cleared — OSM-based location keywords still work';
+    } catch (e) {
+        if (status) status.textContent = `Error: ${e.message}`;
     }
 }
 
