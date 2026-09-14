@@ -105,18 +105,17 @@ executor = ThreadPoolExecutor(max_workers=4)
 # small job from interleaving between files of an older large job.
 metadata_job_executor = ThreadPoolExecutor(max_workers=1)
 metadata_llm_lock = threading.RLock()
-# Upload has no equivalent shared resource forcing serialization — unlike
-# generation, each job here just streams a different folder's own files
-# over its own FTP/SFTP connection to its own per-folder upload-log file,
-# so uploading two different folders at the same time is safe to actually
-# run in parallel instead of queuing one behind the other. Capped at 3
-# (not unbounded) so a burst of clicks doesn't open more concurrent FTP/SFTP
-# connections than is reasonable. _folder_has_active_export_job() below
-# still prevents two jobs from targeting the SAME folder at once — that
-# race (two jobs read-modify-writing one folder's upload-log JSON
-# concurrently) was harmless before only because max_workers=1 made it
-# physically impossible; raising this needed that guard added first.
-export_job_executor = ThreadPoolExecutor(max_workers=3)
+# Upload doesn't share a resource with anything else the way generation
+# calls share the LLM, so running two uploads at once (e.g. images + clips
+# folder together) is technically safe — tried at max_workers=3, but
+# reverted to serial by request after trying it against real uploads: one
+# upload at a time is the preferred behavior. Still a *separate* executor
+# from metadata_job_executor above, so Upload keeps running fine alongside
+# a Gen Metadata batch — this only serializes Upload jobs against each
+# other. _folder_has_active_export_job() below (409 if a job is already
+# active for that exact folder) is kept regardless: harmless extra safety
+# against a double-click landing before the UI disables the row.
+export_job_executor = ThreadPoolExecutor(max_workers=1)
 
 # Active AI model for metadata/location generation (switchable via /api/config)
 def _load_models_file():
