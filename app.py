@@ -105,7 +105,18 @@ executor = ThreadPoolExecutor(max_workers=4)
 # small job from interleaving between files of an older large job.
 metadata_job_executor = ThreadPoolExecutor(max_workers=1)
 metadata_llm_lock = threading.RLock()
-export_job_executor = ThreadPoolExecutor(max_workers=1)
+# Upload has no equivalent shared resource forcing serialization — unlike
+# generation, each job here just streams a different folder's own files
+# over its own FTP/SFTP connection to its own per-folder upload-log file,
+# so uploading two different folders at the same time is safe to actually
+# run in parallel instead of queuing one behind the other. Capped at 3
+# (not unbounded) so a burst of clicks doesn't open more concurrent FTP/SFTP
+# connections than is reasonable. _folder_has_active_export_job() below
+# still prevents two jobs from targeting the SAME folder at once — that
+# race (two jobs read-modify-writing one folder's upload-log JSON
+# concurrently) was harmless before only because max_workers=1 made it
+# physically impossible; raising this needed that guard added first.
+export_job_executor = ThreadPoolExecutor(max_workers=3)
 
 # Active AI model for metadata/location generation (switchable via /api/config)
 def _load_models_file():
@@ -908,6 +919,22 @@ def api_jobs_export_csv():
     return jsonify({"job_id": job_id, "job": job})
 
 
+def _folder_has_active_export_job(folder_path: str) -> str | None:
+    """Return the job type ('export_upload') already running/queued against
+    this exact folder, or None. The frontend already disables a folder's row
+    while its own job is active, but that's a UI convenience, not a
+    guarantee (a second tab, or a click landing just before the row
+    disables) — now that export_job_executor actually runs jobs in
+    parallel, two jobs racing on the same folder's upload-log JSON (read,
+    modify, write) could silently drop one of their entries."""
+    for job in get_active_jobs(include_recent=False):
+        if job.get("type") != "export_upload":
+            continue
+        if (job.get("payload") or {}).get("folder_path") == folder_path:
+            return job.get("type")
+    return None
+
+
 @app.route("/api/jobs/export-upload", methods=["POST"])
 def api_jobs_export_upload():
     data = request.get_json() or {}
@@ -916,6 +943,8 @@ def api_jobs_export_upload():
         return jsonify({"error": "folder_path required"}), 400
     if not os.path.isdir(folder_path):
         return jsonify({"error": f"folder not found: {folder_path}"}), 400
+    if _folder_has_active_export_job(folder_path):
+        return jsonify({"error": "Upload already running for this folder"}), 409
 
     folder_name = os.path.basename(folder_path.rstrip(os.sep)) or "folder"
     total = _estimate_export_upload_total(folder_path)
