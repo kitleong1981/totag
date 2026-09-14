@@ -4269,15 +4269,47 @@ function renderRecentLocations() {
     container.appendChild(clear);
 }
 
+// Coalesces concurrent callers into one in-flight request instead of firing a
+// fresh fetch per call. Queueing several metadata-generation batches in quick
+// succession used to open one /api/llm-health request per batch; if the LLM
+// endpoint was slow to answer (e.g. busy serving the very generation jobs
+// this is checking on), those could pile up and exhaust the browser's ~6
+// concurrent-connections-per-host limit, silently stalling every other
+// same-origin fetch (thumbnail clicks, metadata reload) until one freed up —
+// while SSE job streams, on their own already-open connection, kept ticking.
+let _llmHealthCheckPromise = null;
+
 async function ensureLlmHealthy() {
-    const res = await fetch('/api/llm-health');
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data.ok) {
-        const message = data.message || `LLM health check failed (${res.status})`;
-        const base = data.base_url ? `\n${data.base_url}` : '';
-        throw new Error(`${message}${base}`);
+    if (_llmHealthCheckPromise) return _llmHealthCheckPromise;
+    _llmHealthCheckPromise = (async () => {
+        // Hard client-side timeout — belt-and-suspenders alongside the
+        // backend's own 3s timeout on the outbound LLM call, so this can
+        // never sit pending forever and hold a connection slot regardless
+        // of what's happening server-side.
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        let res;
+        try {
+            res = await fetch('/api/llm-health', { signal: controller.signal });
+        } catch (e) {
+            if (e.name === 'AbortError') throw new Error('LLM health check timed out (8s) — request never got a response.');
+            throw e;
+        } finally {
+            clearTimeout(timeoutId);
+        }
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) {
+            const message = data.message || `LLM health check failed (${res.status})`;
+            const base = data.base_url ? `\n${data.base_url}` : '';
+            throw new Error(`${message}${base}`);
+        }
+        return data;
+    })();
+    try {
+        return await _llmHealthCheckPromise;
+    } finally {
+        _llmHealthCheckPromise = null;
     }
-    return data;
 }
 
 async function generateMetadataWithAI() {
