@@ -695,13 +695,37 @@ async function openJobLog(jobId = null) {
     }
 }
 
+function jobFinishedAgo(job) {
+    const finished = parseJobTimestamp(job?.finished_at || job?.updated_at);
+    if (!finished) return '';
+    const ago = formatShortElapsed(Date.now() - finished);
+    return ago ? `${ago} ago` : '';
+}
+
 function renderJobQueueList(jobs, activeJobId) {
     const lines = ['Queue'];
     const interestingJobs = jobs.filter(job => ['queued', 'running', 'done', 'failed', 'cancelled'].includes(job.status)).slice(0, 8);
+    // Active (running/queued) jobs and the historical done/failed/cancelled
+    // tail come from two different sort keys upstream (sortedJobsForDisplay:
+    // oldest-submitted-first for active, most-recently-finished-first for
+    // history) and get renumbered 1..N by array position here — so the same
+    // underlying job's displayed number drifts over time as new active jobs
+    // push it down, and old completions from a previous session can end up
+    // sitting right below today's in-progress work with nothing to tell
+    // them apart. A separator + "how long ago" on each historical entry
+    // makes that boundary visible instead of reading as one flat queue.
+    let sawHistorical = false;
     interestingJobs.forEach((job, index) => {
+        const isHistorical = ['done', 'failed', 'cancelled'].includes(job.status);
+        if (isHistorical && !sawHistorical) {
+            lines.push('── recently completed ──');
+            sawHistorical = true;
+        }
         const marker = job.id === activeJobId ? '>' : ' ';
         const icon = job.status === 'done' ? 'done' : job.status === 'failed' ? 'fail' : job.status === 'cancelled' ? 'cancel' : job.status === 'running' ? 'run' : 'wait';
-        lines.push(`${marker} ${icon} ${index + 1}. ${summarizeJob(job)}`);
+        const agoText = isHistorical ? jobFinishedAgo(job) : '';
+        const suffix = agoText ? ` (${agoText})` : '';
+        lines.push(`${marker} ${icon} ${index + 1}. ${summarizeJob(job)}${suffix}`);
         if (job.id === activeJobId) lines.push(...renderJobFileQueue(job));
     });
     return lines.join('\n');
