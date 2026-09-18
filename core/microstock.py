@@ -95,6 +95,50 @@ CATEGORY_MAP = {
     "Travel":                  {"shutterstock": "Nature"},
 }
 
+# Adobe Stock's numbered category list (CSV "Category" column takes the number).
+# Order/IDs per https://helpx.adobe.com/stock/contributor/content-policies-guidelines/metadata/choose-right-category-content.html
+ADOBE_CATEGORIES = [
+    "Animals", "Buildings and architecture", "Business", "Drinks", "The environment",
+    "States of mind", "Food", "Graphic resources", "Hobbies and leisure", "Industry",
+    "Landscape", "Lifestyle", "People", "Plants and flowers", "Culture and religion",
+    "Science", "Social issues", "Sports", "Technology", "Transport", "Travel",
+]
+ADOBE_CATEGORY_IDS = {name: i + 1 for i, name in enumerate(ADOBE_CATEGORIES)}
+
+# Map our Shutterstock-style AI categories to the closest Adobe Stock category.
+# Adobe's list is coarser, so several Shutterstock categories collapse onto one.
+SHUTTER_TO_ADOBE_CATEGORY = {
+    "Abstract":          "Graphic resources",
+    "Animals/Wildlife":  "Animals",
+    "Arts":              "Culture and religion",
+    "Backgrounds/Textures": "Graphic resources",
+    "Beauty/Fashion":    "Lifestyle",
+    "Buildings/Landmarks": "Buildings and architecture",
+    "Business/Finance":  "Business",
+    "Celebrities":       "People",
+    "Editorial":         "Lifestyle",
+    "Education":         "Lifestyle",
+    "Food and Drink":    "Food",
+    "Healthcare/Medical": "Science",
+    "Holidays":          "Culture and religion",
+    "Industrial":        "Industry",
+    "Interiors":         "Buildings and architecture",
+    "Miscellaneous":     "Lifestyle",
+    "Nature":            "Landscape",
+    "Parks/Outdoor":     "Landscape",
+    "People":            "People",
+    "Religion":          "Culture and religion",
+    "Science":           "Science",
+    "Signs/Symbols":     "Graphic resources",
+    "Sports/Recreation": "Sports",
+    "Technology":        "Technology",
+    "Transportation":    "Transport",
+    "Vectors":           "Graphic resources",
+    "Vintage":           "Culture and religion",
+}
+
+ADOBE_DEFAULT_CATEGORY = "Lifestyle"
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -323,6 +367,22 @@ def _pond5_title(title: str, model: str = OMLX_MODEL) -> tuple[str, str]:
     return _truncate_for_csv(clean, 80, word_boundary=True), "truncated"
 
 
+def _adobe_title(title: str) -> str:
+    """Return a title fitting Adobe's CSV rules: no commas, <=70 chars."""
+    clean = " ".join(str(title or "").split()).strip()
+    clean = clean.replace(",", "")
+    return _truncate_for_csv(clean, 70, word_boundary=True)
+
+
+def _adobe_category_id(ai_sh: list[str]) -> int:
+    """Map our Shutterstock-style AI categories to an Adobe Stock category number."""
+    for cat in ai_sh:
+        adobe_name = SHUTTER_TO_ADOBE_CATEGORY.get(cat)
+        if adobe_name:
+            return ADOBE_CATEGORY_IDS[adobe_name]
+    return ADOBE_CATEGORY_IDS[ADOBE_DEFAULT_CATEGORY]
+
+
 # ---------------------------------------------------------------------------
 # Folder scanning (for Export tab folder list)
 # ---------------------------------------------------------------------------
@@ -332,7 +392,8 @@ def _folder_disk_info(folder: Path) -> tuple[bool, dict]:
     try:
         shutter_csv = folder / "shutterstock_upload.csv"
         pond5_csv   = folder / "pond5_upload.csv"
-        has_csvs = shutter_csv.exists() or pond5_csv.exists()
+        adobe_csv   = folder / "adobe_upload.csv"
+        has_csvs = shutter_csv.exists() or pond5_csv.exists() or adobe_csv.exists()
     except Exception:
         has_csvs = False
     upload_log = _load_upload_log(folder)
@@ -580,6 +641,32 @@ def generate_csvs_gen(folder_path: str, default_category: Optional[str] = None, 
             if len(p5_title_truncations) > 10:
                 yield f"data:   … {len(p5_title_truncations) - 10} more title(s) truncated\n\n"
         yield f"data: ✅ Pond5 CSV written ({len(metadata_list)} rows)\n\n"
+
+    # Write Adobe Stock CSV (portal "Upload CSV" import — NOT sent over FTP).
+    # Adobe excludes editorial content from this pipeline, same as the FTP site list.
+    adobe_path = None
+    if not is_editorial:
+        adobe_path = folder / "adobe_upload.csv"
+        adobe_skipped_long_names = []
+        with open(adobe_path, "w", newline="", encoding="utf-8") as f:
+            w = csv.writer(f, quoting=csv.QUOTE_ALL)
+            w.writerow(["Filename", "Title", "Keywords", "Category", "Releases"])
+            for m in metadata_list:
+                if len(m["filename"]) > 30:
+                    adobe_skipped_long_names.append(m["filename"])
+                    continue
+                title = _adobe_title(m["title"])
+                keywords = ", ".join(m["keywords"][:50])
+                category_id = _adobe_category_id(m["ai_sh"])
+                w.writerow([m["filename"], title, keywords, category_id, ""])
+        rows_written = len(metadata_list) - len(adobe_skipped_long_names)
+        yield f"data: ✅ Adobe Stock CSV written ({rows_written} rows)\n\n"
+        if adobe_skipped_long_names:
+            yield f"data: ⚠️ Adobe Stock CSV: skipped {len(adobe_skipped_long_names)} file(s) with filename over 30 chars (Adobe's limit)\n\n"
+            for filename in adobe_skipped_long_names[:10]:
+                yield f"data:   • {filename}\n\n"
+            if len(adobe_skipped_long_names) > 10:
+                yield f"data:   … {len(adobe_skipped_long_names) - 10} more\n\n"
 
     # Clear CSV entries from upload log so re-upload sends the new CSV files
     upload_log = _load_upload_log(folder)

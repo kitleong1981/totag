@@ -2427,7 +2427,7 @@ def api_export_download():
         return jsonify({"error": "folder and site parameters required"}), 400
 
     folder = Path(folder_path)
-    csv_names = {"shutterstock": "shutterstock_upload.csv", "pond5": "pond5_upload.csv"}
+    csv_names = {"shutterstock": "shutterstock_upload.csv", "pond5": "pond5_upload.csv", "adobe": "adobe_upload.csv"}
     if site not in csv_names:
         return jsonify({"error": f"unknown site: {site}"}), 400
     csv_path = folder / csv_names[site]
