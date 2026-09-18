@@ -3640,7 +3640,7 @@ function renderExportRow(folder, idx, configuredSites) {
             <div class="export-actions">
                 <button class="btn-secondary" onclick="startGenerateCSV(${idx})" ${disabledAttr} style="font-size:0.75rem;padding:4px 8px;" title="Generate CSV">CSV</button>
                 ${folder.has_csvs ? `<button class="btn-secondary" onclick="downloadCSV(${idx},'shutterstock')" ${disabledAttr} style="font-size:0.75rem;padding:4px 8px;">↓ SS</button>` : ''}
-                ${folder.has_csvs && folder.is_editorial ? `<button class="btn-secondary" onclick="downloadCSV(${idx},'pond5')" ${disabledAttr} style="font-size:0.75rem;padding:4px 8px;">↓ P5</button>` : ''}
+                ${folder.has_csvs && (folder.type === 'clips' || !folder.is_editorial) ? `<button class="btn-secondary" onclick="downloadCSV(${idx},'pond5')" ${disabledAttr} style="font-size:0.75rem;padding:4px 8px;">↓ P5</button>` : ''}
                 ${folder.has_csvs && !folder.is_editorial ? `<button class="btn-secondary" onclick="downloadCSV(${idx},'adobe')" ${disabledAttr} style="font-size:0.75rem;padding:4px 8px;" title="Download adobe_upload.csv to import via Adobe Stock's portal Upload CSV button">↓ AS</button>` : ''}
                 <button class="btn-secondary" onclick="startUpload(${idx})" ${uploadDisabledAttr} style="font-size:0.75rem;padding:4px 8px;background:#1a3a2a;border-color:#166534;color:#4ade80;${!hasCredentials ? 'opacity:0.45;cursor:not-allowed;' : ''}" title="${uploadTitle}">⬆</button>
             </div>
