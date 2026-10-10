@@ -590,6 +590,9 @@ function updateGeneratingIndicators() {
     document.querySelectorAll('.thumbnail-item.generating-file').forEach(el => {
         el.classList.remove('generating-file');
     });
+    document.querySelectorAll('.thumbnail-item.queued-file').forEach(el => {
+        el.classList.remove('queued-file');
+    });
     if (runningGenJob && runningGenJob.current_label) {
         document.querySelectorAll('.thumbnail-item').forEach(el => {
             const path = el.dataset.path || '';
@@ -603,7 +606,20 @@ function updateGeneratingIndicators() {
     const banner = document.getElementById('gen-status-banner');
     const bannerText = document.getElementById('gen-status-text');
     const allJobPaths = new Set(genJobs.flatMap(j => (j.payload && j.payload.paths) || []));
-    const selectionIsGenerating = genJobs.length > 0 && selectedFiles.some(p => allJobPaths.has(p));
+    // Disable the star only when there is nothing new to queue (v3.6.0).
+    const hasFreshSelection = selectedFiles.some(p => !allJobPaths.has(p));
+    const selectionIsGenerating = genJobs.length > 0 && selectedFiles.length > 0 && !hasFreshSelection;
+
+    // Mark files queued in an active job but not yet processed (v3.6.0).
+    if (genJobs.length > 0) {
+        const doneSet = new Set(allFiles.filter(f => f.has_metadata).map(f => f.path));
+        document.querySelectorAll('.thumbnail-item').forEach(el => {
+            const tpath = el.dataset.path || '';
+            if (tpath && allJobPaths.has(tpath) && !doneSet.has(tpath) && !el.classList.contains('generating-file')) {
+                el.classList.add('queued-file');
+            }
+        });
+    }
 
     if (genBtn) {
         genBtn.classList.toggle('generating', selectionIsGenerating);
@@ -910,6 +926,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadQuickSearches();
     loadFolders();
     loadDirtyCount();
+    renderContextHintChips();
     setupEventListeners();
     setupInfiniteScroll();
     // Grid-level drag handling for thumbnail→thumbnail metadata copy
@@ -4340,6 +4357,7 @@ async function ensureLlmHealthy() {
 async function generateMetadataWithAI() {
     if (selectedFiles.length === 0) return;
     const contextHint = getMetadataContextHint();
+    rememberContextHint(contextHint);
     const btn = document.getElementById('gen-meta-btn');
     btn.disabled = true;
     btn.classList.add('generating');
@@ -4373,8 +4391,80 @@ function getMetadataContextHint() {
     return input ? input.value.trim() : '';
 }
 
+// ---- context-hint history (v3.6.0): previously used hints become clickable
+// chips under the Context Hint field, so repeats are one click instead of
+// retyping. Stored in browser localStorage.
+const HINT_HISTORY_KEY = 'totag.contextHintHistory';
+let contextHintHistory = [];
+try {
+    const _h = JSON.parse(localStorage.getItem(HINT_HISTORY_KEY) || '[]');
+    if (Array.isArray(_h)) {
+        for (const x of _h) {
+            if (typeof x !== 'string') continue;
+            for (const t of x.split(',')) {
+                const term = t.trim();
+                if (term && !contextHintHistory.includes(term)) contextHintHistory.push(term);
+            }
+        }
+        contextHintHistory = contextHintHistory.slice(0, 15);
+    }
+} catch (e) { contextHintHistory = []; }
+
+function saveContextHintHistory() {
+    try { localStorage.setItem(HINT_HISTORY_KEY, JSON.stringify(contextHintHistory.slice(0, 15))); } catch (e) {}
+}
+
+function rememberContextHint(hint) {
+    const terms = (hint || '').split(',').map(t => t.trim()).filter(Boolean);
+    if (!terms.length) return;
+    const rest = contextHintHistory.filter(h => !terms.includes(h));
+    contextHintHistory = [...terms, ...rest].slice(0, 15);
+    saveContextHintHistory();
+    renderContextHintChips();
+}
+
+function forgetContextHint(hint) {
+    contextHintHistory = contextHintHistory.filter(h => h !== hint);
+    saveContextHintHistory();
+    renderContextHintChips();
+}
+
+function renderContextHintChips() {
+    const container = document.getElementById('context-hint-chips');
+    if (!container) return;
+    container.innerHTML = '';
+    contextHintHistory.forEach((hint) => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'recent-loc-pill';
+        chip.title = 'Click to add to the Context Hint field';
+        const label = document.createElement('span');
+        label.textContent = hint;
+        chip.appendChild(label);
+        const x = document.createElement('span');
+        x.textContent = ' \u2715';
+        x.style.cssText = 'opacity:0.45;margin-left:2px;';
+        x.title = 'Remove from history';
+        x.onclick = (e) => { e.stopPropagation(); forgetContextHint(hint); };
+        chip.appendChild(x);
+        chip.onclick = () => {
+            const input = document.getElementById('context-hint-input');
+            if (!input) return;
+            const cur = input.value.trim();
+            if (!cur) {
+                input.value = hint;
+            } else if (!cur.split(/\s*,\s*/).includes(hint)) {
+                input.value = cur + ', ' + hint;
+            }
+            input.focus();
+        };
+        container.appendChild(chip);
+    });
+}
+
 function enqueueForGeneration(paths, contextHint = '') {
     if (contextHint === '') contextHint = getMetadataContextHint();
+    rememberContextHint(contextHint);
     setStatus('Checking LLM server...', true);
     ensureLlmHealthy()
         .then(() => startServerJob('/api/jobs/metadata-generate', {

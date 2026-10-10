@@ -630,6 +630,27 @@ body {
 }
 @keyframes generating-spin {
     to { transform: rotate(360deg); }
+
+/* File is queued in an active AI generation job, waiting its turn (v3.6.0).
+   Distinct from .generating-file (the one being processed right now). */
+.thumbnail-item.queued-file {
+    border-style: dashed;
+}
+.thumbnail-item.queued-file::after {
+    content: 'QUEUED';
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #e5e7eb;
+    background: rgba(17, 24, 39, 0.72);
+    padding: 2px 6px;
+    border-radius: 4px;
+    z-index: 2;
+    pointer-events: none;
+}
 }
 
 .gen-status-banner {
