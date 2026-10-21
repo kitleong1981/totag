@@ -45,3 +45,11 @@ DATABASE_PATH = os.path.join(BASE_DIR, "totag.db")
 
 # Ensure cache directory exists
 os.makedirs(THUMB_CACHE_DIR, exist_ok=True)
+
+# Image size sent to the vision model for still photos (long edge, px) and JPEG
+# quality. Larger images read signs/landmarks better but cost more inference time;
+# the model server may also cap the image at its own max-pixels setting.
+LLM_IMAGE_MAX_DIM = int(os.environ.get("TOTAG_LLM_IMAGE_MAX_DIM", "2048"))
+LLM_IMAGE_QUALITY = int(os.environ.get("TOTAG_LLM_IMAGE_QUALITY", "85"))
+# Video sends up to 8 frames per clip, so keep those smaller to bound token cost.
+LLM_VIDEO_FRAME_MAX_DIM = int(os.environ.get("TOTAG_LLM_VIDEO_FRAME_MAX_DIM", "1200"))

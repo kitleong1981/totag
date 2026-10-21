@@ -16,6 +16,7 @@ import threading
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
+from config import LLM_IMAGE_MAX_DIM, LLM_IMAGE_QUALITY, LLM_VIDEO_FRAME_MAX_DIM
 from core.binaries import find_binary
 from core.geocoding import _geotag_keywords, _geotag_location_hint
 from core.keywords import (
@@ -28,7 +29,7 @@ from core.keywords import (
 )
 
 
-def _resize_image_b64(image_path, max_dim=1200):
+def _resize_image_b64(image_path, max_dim=LLM_IMAGE_MAX_DIM):
     """Resize image to max_dim on long edge, return base64 JPEG string."""
     import io as _io
     from PIL import Image as _Image
@@ -40,7 +41,7 @@ def _resize_image_b64(image_path, max_dim=1200):
             scale = max_dim / float(max(w, h))
             img = img.resize((int(w * scale), int(h * scale)), _Image.LANCZOS)
         buf = _io.BytesIO()
-        img.save(buf, format="JPEG", quality=60, optimize=True)
+        img.save(buf, format="JPEG", quality=LLM_IMAGE_QUALITY, optimize=True)
         buf.seek(0)
         return _b64.b64encode(buf.read()).decode("utf-8")
 
@@ -54,7 +55,7 @@ def _prepare_frames_b64(path):
     ext = os.path.splitext(path)[1].lower()
     is_video = ext in ('.mp4', '.mov')
     if not is_video:
-        return [_resize_image_b64(path, max_dim=1200)]
+        return [_resize_image_b64(path)]
 
     frames_b64 = []
     # Probe duration from format; fall back to video stream if missing
@@ -77,11 +78,11 @@ def _prepare_frames_b64(path):
             tmp_path = tmp.name
         subprocess.run(
             [find_binary("ffmpeg"), "-ss", str(t), "-i", path,
-             "-vframes", "1", "-vf", "scale=1200:-1", "-update", "1", tmp_path, "-y"],
+             "-vframes", "1", "-vf", f"scale={LLM_VIDEO_FRAME_MAX_DIM}:-1", "-update", "1", tmp_path, "-y"],
             capture_output=True, timeout=30
         )
         if os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 0:
-            frames_b64.append(_resize_image_b64(tmp_path, max_dim=1200))
+            frames_b64.append(_resize_image_b64(tmp_path, max_dim=LLM_VIDEO_FRAME_MAX_DIM))
         if os.path.exists(tmp_path):
             os.unlink(tmp_path)
         t += 2.0
