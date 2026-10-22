@@ -17,6 +17,7 @@ API key. Both degrade gracefully (return empty) when unavailable.
 
 import json
 import os
+import re
 import subprocess
 
 from core.binaries import find_binary
@@ -122,12 +123,37 @@ def _blocked_location_name(name: str) -> bool:
         "residences",
         "apartments",
         "apartment",
+        # utility facilities near a point are not places worth a keyword
+        "toilet",
+        "restroom",
+        "rest room",
+        "washroom",
+        "bathroom",
+        "lavatory",
+        "vending machine",
     )
     return (
         name_key.endswith(business_suffixes)
         or any(term in name_key for term in blocked_name_terms)
+        # Google returns Japanese block-level areas as e.g. "Nishi-Nippori-Nichome
+        # (Nishi-Nippori 2)"; a chome (block number) is never a useful keyword.
+        or bool(re.search(r"ch[oō]me\b", name_key))
+        # Google romanizes Japanese POIs with the words run together, e.g.
+        # "Yamanashihosekihakubutsukan" — unreadable, no search value.
+        or bool(re.search(r"[a-z]{4}(hakubutsukan|bijutsukan|bijyutsukan|bijyutukan|bijutukan|hoteru|shiyakusho|kaikan)\b", name_key))
+        # English keywords only: Google returns the local-language name (kanji,
+        # fullwidth brackets) for POIs without an English name; a "/" never
+        # belongs in a keyword; bare numbers are block/lot components.
+        or any(ord(c) > 0x24F for c in name)
+        or "/" in name
+        or bool(re.fullmatch(r"[\d\s\-]+", name))
         or len(name) > 64
     )
+
+
+def _strip_location_parenthetical(name: str) -> str:
+    """'Seattle-Tacoma International Airport (SEA)' -> 'Seattle-Tacoma International Airport'."""
+    return re.sub(r"\s*\([^)]*\)", "", str(name or "")).strip()
 
 
 def _safe_location_place_name(name: str, types: set[str] | None = None) -> bool:
@@ -225,13 +251,14 @@ def _google_location_context(lat: float, lon: float, api_key: str) -> dict:
             types = set(item.get("types", []))
             if types & safe_landmark_types and not types & unsafe_poi_types:
                 components = item.get("address_components", [])
-                if components and _safe_location_place_name(components[0].get("long_name", ""), types):
-                    keywords.append(components[0].get("long_name", ""))
-                    hint_terms.append(components[0].get("long_name", ""))
+                first_name = _strip_location_parenthetical(components[0].get("long_name", "")) if components else ""
+                if first_name and not _blocked_location_name(first_name) and _safe_location_place_name(first_name, types):
+                    keywords.append(first_name)
+                    hint_terms.append(first_name)
 
             for comp in item.get("address_components", []):
                 comp_types = set(comp.get("types", []))
-                comp_name = comp.get("long_name", "")
+                comp_name = _strip_location_parenthetical(comp.get("long_name", ""))
                 if comp_types & component_types and not _blocked_location_name(comp_name):
                     keywords.append(comp_name)
                     hint_terms.append(comp_name)
@@ -250,9 +277,9 @@ def _google_location_context(lat: float, lon: float, api_key: str) -> dict:
             places_payload = places_response.json()
             if places_payload.get("status") in ("OK", "ZERO_RESULTS"):
                 for place in places_payload.get("results", [])[:3]:
-                    name = str(place.get("name") or "").strip()
+                    name = _strip_location_parenthetical(place.get("name") or "")
                     types = set(place.get("types", []))
-                    if _safe_location_place_name(name, types):
+                    if name and not _blocked_location_name(name) and _safe_location_place_name(name, types):
                         hint_terms.append(name)
                         # Photo taken AT this place (not just near it) — the
                         # place name belongs in keywords, e.g. Kerry Park.

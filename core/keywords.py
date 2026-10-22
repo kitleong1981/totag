@@ -77,7 +77,9 @@ def _clean_generated_keyword(value: str):
     keyword phrases.
     """
     kw = re.sub(r"\s+", " ", str(value or "").strip().strip(",;:|"))
-    if not kw:
+    # "Torii gate (Shinto)" -> "Torii gate": a parenthetical aside is never part of a keyword.
+    kw = re.sub(r"\s*\([^)]*\)", "", kw).strip(" ,;:|-")
+    if not kw or re.search(r"[()\[\]]", kw):
         return None
     low = kw.lower()
 
@@ -132,10 +134,17 @@ def _location_metadata_keywords(location_str: str) -> list[str]:
     ``Addison @ Addison Cir - N - FS``.  These are useful for navigation but
     poor stock-search keywords and should never be appended automatically.
     """
-    parts = [p.strip(" .:-") for p in re.split(r"[,;\n]+", location_str or "") if p.strip(" .:-")]
+    # Strip parentheticals first so a comma inside them ("Hyde Park (London, UK)") can't split the name.
+    location_str = re.sub(r"\s*\([^)]*\)", "", location_str or "")
+    parts = [p.strip(" .:-") for p in re.split(r"[,;\n]+", location_str) if p.strip(" .:-")]
     result = []
     for part in parts:
         low = part.lower()
+        # English keywords only; chome (block) names and run-together romaji POI names are noise.
+        if any(ord(c) > 0x24F for c in part) or re.search(r"[()\[\]]", part):
+            continue
+        if re.search(r"ch[oō]me\b", low) or re.search(r"[a-z]{4}(hakubutsukan|bijutsukan|bijyutsukan|bijyutukan|bijutukan|hoteru|shiyakusho|kaikan)\b", low):
+            continue
         if "@" in part or re.search(r"\b(?:intersection|crossing|roundabout)\b", low):
             continue
         # County/Airport are reverse-geocoder containment details, not useful
