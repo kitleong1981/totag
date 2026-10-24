@@ -647,26 +647,23 @@ def generate_csvs_gen(folder_path: str, default_category: Optional[str] = None, 
     adobe_path = None
     if not is_editorial:
         adobe_path = folder / "adobe_upload.csv"
-        adobe_skipped_long_names = []
+        adobe_long_names = []
         with open(adobe_path, "w", newline="", encoding="utf-8") as f:
             w = csv.writer(f, quoting=csv.QUOTE_ALL)
             w.writerow(["Filename", "Title", "Keywords", "Category", "Releases"])
             for m in metadata_list:
+                # Adobe's docs cap Filename at 30 chars, but the portal keeps longer
+                # uploaded names intact. Never drop the row: a missing row means the
+                # file gets no category/title at all.
                 if len(m["filename"]) > 30:
-                    adobe_skipped_long_names.append(m["filename"])
-                    continue
+                    adobe_long_names.append(m["filename"])
                 title = _adobe_title(m["title"])
                 keywords = ", ".join(m["keywords"][:50])
                 category_id = _adobe_category_id(m["ai_sh"])
                 w.writerow([m["filename"], title, keywords, category_id, ""])
-        rows_written = len(metadata_list) - len(adobe_skipped_long_names)
-        yield f"data: ✅ Adobe Stock CSV written ({rows_written} rows)\n\n"
-        if adobe_skipped_long_names:
-            yield f"data: ⚠️ Adobe Stock CSV: skipped {len(adobe_skipped_long_names)} file(s) with filename over 30 chars (Adobe's limit)\n\n"
-            for filename in adobe_skipped_long_names[:10]:
-                yield f"data:   • {filename}\n\n"
-            if len(adobe_skipped_long_names) > 10:
-                yield f"data:   … {len(adobe_skipped_long_names) - 10} more\n\n"
+        yield f"data: ✅ Adobe Stock CSV written ({len(metadata_list)} rows)\n\n"
+        if adobe_long_names:
+            yield f"data: ℹ️ Adobe Stock CSV: {len(adobe_long_names)} filename(s) are over 30 chars (Adobe's documented limit) — included anyway\n\n"
 
     # Clear CSV entries from upload log so re-upload sends the new CSV files
     upload_log = _load_upload_log(folder)
